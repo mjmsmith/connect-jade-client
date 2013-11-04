@@ -83,9 +83,27 @@ function templatesJS(templates, rootKeyPath) {
   return body;
 }
 
-module.exports = function(options, extraJadeOptions) {
-  var rootDirPath = options.rootDirPath;
-  var rootUrlPath = options.rootUrlPath;
+function normalizeOptions(inputOptions) {
+  var options = {};
+
+  options.rootDirPath = inputOptions.rootDirPath;
+  options.rootUrlPath = inputOptions.rootUrlPath;
+
+  if (options.rootDirPath.indexOf(path.sep) !== 0) {
+    options.rootDirPath = options.rootDirPath + path.sep;
+  }
+
+  if (options.rootUrlPath.indexOf(path.sep) !== 0) {
+    options.rootUrlPath = path.sep + options.rootUrlPath;
+  }
+  if (options.rootUrlPath.lastIndexOf(path.sep) !== (options.rootUrlPath.length - 1)) {
+    options.rootUrlPath = options.rootUrlPath + path.sep;
+  }
+
+  return options;
+}
+
+function normalizeJadeOptions(inputJadeOptions) {
   var jadeOptions = {
     client: true,
     compileDebug: false,
@@ -93,27 +111,21 @@ module.exports = function(options, extraJadeOptions) {
     pretty: true
   };
 
-  if (rootDirPath.indexOf(path.sep) !== 0) {
-    rootDirPath = rootDirPath + path.sep;
-  }
-
-  if (rootUrlPath.indexOf(path.sep) !== 0) {
-    rootUrlPath = path.sep + rootUrlPath;
-  }
-  if (rootUrlPath.lastIndexOf(path.sep) !== (rootUrlPath.length - 1)) {
-    rootUrlPath = rootUrlPath + path.sep;
-  }
-
-  if (extraJadeOptions) {
-    for (var key in extraJadeOptions) {
-      if (extraJadeOptions.hasOwnProperty(key)) {
-        jadeOptions[key] = extraJadeOptions[key];
+  if (inputJadeOptions) {
+    for (var key in inputJadeOptions) {
+      if (inputJadeOptions.hasOwnProperty(key)) {
+        jadeOptions[key] = inputJadeOptions[key];
       }
     }
   }
 
-  var templates = compileTemplatesInDir(null, rootDirPath, jadeOptions);
+  return jadeOptions;
+}
 
+module.exports = function(inputOptions, inputJadeOptions) {
+  var options = normalizeOptions(inputOptions);
+  var jadeOptions = normalizeJadeOptions(inputJadeOptions);
+  var templates = compileTemplatesInDir(null, options.rootDirPath, jadeOptions);
   var runtimePath = path.join(__dirname, "..", "jade", "runtime.js");
   var runtime = fs.readFileSync(runtimePath, "utf8").toString();
 
@@ -124,11 +136,11 @@ module.exports = function(options, extraJadeOptions) {
 
     var urlPath = url.parse(req.url).path;
 
-    if (urlPath.lastIndexOf(rootUrlPath) !== 0) {
+    if (urlPath.lastIndexOf(options.rootUrlPath) !== 0) {
       return next();
     }
 
-    urlPath = urlPath.substr(rootUrlPath.length);
+    urlPath = urlPath.substr(options.rootUrlPath.length);
 
     if (urlPath.substr(urlPath.length - 3) === ".js") {
       urlPath = urlPath.substr(0, (urlPath.length - 3));
