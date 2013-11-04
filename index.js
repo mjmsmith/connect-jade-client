@@ -1,3 +1,5 @@
+"use strict";
+
 var fs = require("fs");
 var jade = require("jade");
 var path = require("path");
@@ -119,7 +121,7 @@ module.exports = function(options, extraJadeOptions) {
         jadeOptions[key] = extraJadeOptions[key];
       }
     }
-  } 
+  }
 
   var templates = compileTemplatesInDir(null, rootDirPath, jadeOptions);
 
