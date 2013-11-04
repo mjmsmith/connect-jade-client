@@ -63,9 +63,9 @@ function compileTemplatesInDir(templates, dirPath, jadeOptions) {
 }
 
 function formatTemplates(templates, rootKeyPath) {
-  body = "";
+  var body = "";
 
-  for (key in templates) {
+  for (var key in templates) {
     if (templates.hasOwnProperty(key)) {
       var keyPath = rootKeyPath + "." + key;
 
@@ -102,14 +102,14 @@ module.exports = function(options, extraJadeOptions) {
     pretty: true
   };
 
-  if (rootDirPath.indexOf("/") != 0) {
+  if (rootDirPath.indexOf("/") !== 0) {
     rootDirPath = rootDirPath + "/";
   }
 
-  if (rootUrlPath.indexOf("/") != 0) {
+  if (rootUrlPath.indexOf("/") !== 0) {
     rootUrlPath = "/" + rootUrlPath;
   }
-  if (rootUrlPath.lastIndexOf("/") != (rootUrlPath.length - 1)) {
+  if (rootUrlPath.lastIndexOf("/") !== (rootUrlPath.length - 1)) {
     rootUrlPath = rootUrlPath + "/";
   }
 
@@ -134,7 +134,7 @@ module.exports = function(options, extraJadeOptions) {
     var subTemplates = templates;
     var keys = urlPathKeys(url.parse(req.url).path, rootUrlPath);
 
-    if (keys.length == 0) {
+    if (keys.length === 0) {
       return next();
     }
 
@@ -145,9 +145,10 @@ module.exports = function(options, extraJadeOptions) {
       }
     }
 
-    var body = runtime
-      + "\nif (typeof(Templates) === \"undefined\") Templates = {};\n"
-      + formatTemplates(subTemplates, "Templates");
+    var body =
+      runtime +
+      "\nif (typeof(Templates) === \"undefined\") Templates = {};\n" +
+      formatTemplates(subTemplates, "Templates");
 
     res.set("Content-Type", "application/javascript");
     res.send(body);
