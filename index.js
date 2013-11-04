@@ -4,8 +4,24 @@ var path = require("path");
 var url = require("url");
 
 var jadePattern = new RegExp("^[/][/]--\\s*(\\S+)[.]jade$", "mg");
+var emptyFunction = function() { return ""; };
 
-function compileTemplates(templates, dirPath, jadeOptions) {
+function compileTemplatesInFile(templates, filePath, jadeOptions) {
+  var view = path.basename(filePath, ".jade");
+  var fileContents = fs.readFileSync(filePath, "utf8").toString();
+  var parts = fileContents.split(jadePattern);
+
+  jadeOptions.filename = filePath;
+  templates[view] = jade.compile(parts[0], jadeOptions);
+  parts.shift();
+
+  for (var i = 0; i < parts.length; i += 2) {
+    jadeOptions.filename = filePath +" [" + parts[i] + "]";
+    templates[view+"."+parts[i]] = jade.compile(parts[i+1], jadeOptions);
+  }
+}
+
+function compileTemplatesInDir(templates, dirPath, jadeOptions) {
   // Get the .jade files and subdirectories in this directory.
 
   var files = [];
@@ -24,39 +40,23 @@ function compileTemplates(templates, dirPath, jadeOptions) {
     }
   });
 
-  // Compile all the .jade files first in case we have a directory with the same name.
-
   if (!templates) {
     templates = {};
   }
 
+  // Compile all the .jade files first in case we have a directory with the same name.
+
   files.forEach(function(file) {
-    var view = file.substr(0, file.indexOf("."));
-    var filePath = path.join(dirPath, file);
-    var fileContents = fs.readFileSync(filePath, "utf8").toString();
-    var parts = fileContents.split(jadePattern);
-
-    parts.unshift(view);
-
-    jadeOptions.filename = filePath;
-    if (i > 0) {
-      jadeOptions.filename += " [" + parts[i] + "]";
-    }
-
-    for (var i = 0; i < parts.length; i += 2) {
-      templates[parts[i]] = jade.compile(parts[i+1], jadeOptions);
-    }
+    compileTemplatesInFile(templates, path.join(dirPath, file), jadeOptions);
   });
 
   // Compile all the subdirectories.
-
-  var emptyFunction = function() { return ""; };
 
   dirs.forEach(function(dir) {
     if (!templates[dir]) {
       templates[dir] = emptyFunction;
     }
-    compileTemplates(templates[dir], path.join(dirPath, dir), jadeOptions);
+    compileTemplatesInDir(templates[dir], path.join(dirPath, dir), jadeOptions);
   });
 
   return templates;
@@ -121,9 +121,9 @@ module.exports = function(options, extraJadeOptions) {
     }
   } 
 
-  var templates = compileTemplates(null, rootDirPath, jadeOptions);
+  var templates = compileTemplatesInDir(null, rootDirPath, jadeOptions);
 
-  var runtimePath = path.join(__dirname, "node_modules", "jade", "runtime.js");
+  var runtimePath = path.join(__dirname, "..", "jade", "runtime.js");
   var runtime = fs.readFileSync(runtimePath, "utf8").toString();
 
   return function(req, res, next) {
