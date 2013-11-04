@@ -81,21 +81,6 @@ function templatesJS(templates, rootKeyPath) {
   }
 
   return body;
-
-}
-
-function urlPathKeys(urlPath, rootUrlPath) {
-  if (urlPath.lastIndexOf(rootUrlPath) !== 0) {
-    return null;
-  }
-
-  urlPath = urlPath.substr(rootUrlPath.length);
-
-  if (urlPath.substr(urlPath.length - 3) === ".js") {
-    urlPath = urlPath.substr(0, (urlPath.length - 3));
-  }
-
-  return urlPath.split("/").filter(function(str) { return str.length > 0; });
 }
 
 module.exports = function(options, extraJadeOptions) {
@@ -137,12 +122,20 @@ module.exports = function(options, extraJadeOptions) {
       return next();
     }
 
-    var subTemplates = templates;
-    var keys = urlPathKeys(url.parse(req.url).path, rootUrlPath);
+    var urlPath = url.parse(req.url).path;
 
-    if (keys === null) {
+    if (urlPath.lastIndexOf(rootUrlPath) !== 0) {
       return next();
     }
+
+    urlPath = urlPath.substr(rootUrlPath.length);
+
+    if (urlPath.substr(urlPath.length - 3) === ".js") {
+      urlPath = urlPath.substr(0, (urlPath.length - 3));
+    }
+
+    var keys = urlPath.split("/").filter(function(str) { return str.length > 0; });
+    var subTemplates = templates;
 
     for (var i = 0; i < keys.length; ++i) {
       subTemplates = subTemplates[keys[i]];
