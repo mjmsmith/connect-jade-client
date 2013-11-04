@@ -64,15 +64,19 @@ function compileTemplatesInDir(templates, dirPath, jadeOptions) {
   return templates;
 }
 
-function formatTemplates(templates, rootKeyPath) {
-  var body = ";\nif (typeof(Templates) === \"undefined\") Templates = {};\n";
+function preambleJS() {
+  return ";\nif (typeof(Templates) === \"undefined\") Templates = {};\n";
+}
+
+function templatesJS(templates, rootKeyPath) {
+  var body = "";
 
   for (var key in templates) {
     if (templates.hasOwnProperty(key)) {
       var keyPath = rootKeyPath + "." + key;
 
       body += keyPath + " = " + templates[key].toString() + ";\n";
-      body += formatTemplates(templates[key], keyPath);
+      body += templatesJS(templates[key], keyPath);
     }
   }
 
@@ -82,7 +86,7 @@ function formatTemplates(templates, rootKeyPath) {
 
 function urlPathKeys(urlPath, rootUrlPath) {
   if (urlPath.lastIndexOf(rootUrlPath) !== 0) {
-    return [];
+    return null;
   }
 
   urlPath = urlPath.substr(rootUrlPath.length);
@@ -136,7 +140,7 @@ module.exports = function(options, extraJadeOptions) {
     var subTemplates = templates;
     var keys = urlPathKeys(url.parse(req.url).path, rootUrlPath);
 
-    if (keys.length === 0) {
+    if (keys === null) {
       return next();
     }
 
@@ -148,6 +152,6 @@ module.exports = function(options, extraJadeOptions) {
     }
 
     res.set("Content-Type", "application/javascript");
-    res.send(runtime + formatTemplates(subTemplates, "Templates"));
+    res.send(runtime + preambleJS() + templatesJS(subTemplates, "Templates"));
   };
 };
