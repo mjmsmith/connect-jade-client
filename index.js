@@ -64,8 +64,8 @@ function compileTemplatesInDir(templates, dirPath, jadeOptions) {
   return templates;
 }
 
-function preambleJS(templatesVarName) {
-  return ";\nif (typeof(" + templatesVarName + ") === 'undefined') " + templatesVarName + " = {};\n";
+function prefixJS() {
+  return "\nvar T = {};\n";
 }
 
 function templatesJS(templates, rootKeyPath) {
@@ -81,6 +81,12 @@ function templatesJS(templates, rootKeyPath) {
   }
 
   return body;
+}
+
+function suffixJS(templatesVarName) {
+  return "typeof(module) === 'object' && typeof(module.exports) === 'object' " +
+         "? module.exports." + templatesVarName + " = T " +
+         ": window." + templatesVarName + " = T;\n";
 }
 
 function normalizeOptions(inputOptions) {
@@ -131,8 +137,10 @@ module.exports = function(inputOptions, inputJadeOptions) {
   var options = normalizeOptions(inputOptions);
   var jadeOptions = normalizeJadeOptions(inputJadeOptions);
   var templates = compileTemplatesInDir(null, options.rootDirPath, jadeOptions);
-  var runtimePath = path.join(__dirname, "..", "jade", "runtime.js");
-  var runtime = fs.readFileSync(runtimePath, "utf8").toString();
+  var runtime = "var jade = {};\n" +
+                "(function(exports) {\n" +
+                fs.readFileSync(path.join(__dirname, "runtime.js"), "utf8").toString() +
+                "})(jade);\n";
 
   return function(req, res, next) {
     if (["GET", "HEAD"].indexOf(req.method) == -1) {
@@ -162,8 +170,11 @@ module.exports = function(inputOptions, inputJadeOptions) {
     }
 
     res.set("Content-Type", "application/javascript");
-    res.send(runtime +
-             preambleJS(options.templatesVarName) +
-             templatesJS(subTemplates, options.templatesVarName));
+    res.send("(function() {\n" +
+             runtime +
+             prefixJS() +
+             templatesJS(subTemplates, "T") +
+             suffixJS(options.templatesVarName) +
+             "})();");
   };
 };
