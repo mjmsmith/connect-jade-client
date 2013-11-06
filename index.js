@@ -2,6 +2,7 @@
 
 var fs = require("fs");
 var jade = require("jade");
+var mkdirp = require("mkdirp");
 var path = require("path");
 var url = require("url");
 
@@ -64,11 +65,7 @@ function compileTemplatesInDir(templates, dirPath, jadeOptions) {
   return templates;
 }
 
-function prefixJS() {
-  return "\nvar T = {};\n";
-}
-
-function templatesJS(templates, rootKeyPath) {
+function jsTemplates(templates, rootKeyPath) {
   var body = "";
 
   for (var key in templates) {
@@ -76,14 +73,25 @@ function templatesJS(templates, rootKeyPath) {
       var keyPath = rootKeyPath + "." + key;
 
       body += keyPath + " = " + templates[key].toString() + ";\n";
-      body += templatesJS(templates[key], keyPath);
+      body += jsTemplates(templates[key], keyPath);
     }
   }
 
   return body;
 }
 
-function suffixJS(templatesVarName) {
+function jsRuntime() {
+  return  "var jade = {};\n" +
+          "(function(exports) {\n" +
+          fs.readFileSync(path.join(__dirname, "runtime.js"), "utf8").toString() +
+          "})(jade);\n";
+}
+
+function jsPrefix() {
+  return "\nvar T = {};\n";
+}
+
+function jsSuffix(templatesVarName) {
   return "typeof(module) === 'object' && typeof(module.exports) === 'object' " +
          "? module.exports." + templatesVarName + " = T " +
          ": window." + templatesVarName + " = T;\n";
@@ -92,7 +100,8 @@ function suffixJS(templatesVarName) {
 function normalizeOptions(inputOptions) {
   var options = {
     templatesVarName: inputOptions.templatesVarName,
-    rootDirPath: inputOptions.rootDirPath,
+    rootSrcPath: inputOptions.rootSrcPath,
+    rootDstPath: inputOptions.rootDstPath,
     rootUrlPath: inputOptions.rootUrlPath
   };
 
@@ -100,15 +109,19 @@ function normalizeOptions(inputOptions) {
     options.templatesVarName = "Templates";
   }
 
-  if (options.rootDirPath.indexOf(path.sep) !== 0) {
-    options.rootDirPath = options.rootDirPath + path.sep;
+  if (options.rootSrcPath.lastIndexOf(path.sep) === (options.rootSrcPath.length - 1)) {
+    options.rootSrcPath = options.rootSrcPath.substr(0, (options.rootSrcPath.length - 1));
   }
 
-  if (options.rootUrlPath.indexOf(path.sep) !== 0) {
-    options.rootUrlPath = path.sep + options.rootUrlPath;
+  if (options.rootDstPath.lastIndexOf(path.sep) === (options.rootDstPath.length - 1)) {
+    options.rootDstPath = options.rootSrcPath.substr(0, (options.rootDstPath.length - 1));
   }
-  if (options.rootUrlPath.lastIndexOf(path.sep) !== (options.rootUrlPath.length - 1)) {
-    options.rootUrlPath = options.rootUrlPath + path.sep;
+
+  if (options.rootUrlPath.indexOf("/") !== 0) {
+    options.rootUrlPath = "/" + options.rootUrlPath;
+  }
+  if (options.rootUrlPath.lastIndexOf("/") === (options.rootUrlPath.length - 1)) {
+    options.rootUrlPath = options.rootUrlPath.substr(0, (options.rootUrlPath.length - 1));
   }
 
   return options;
@@ -136,11 +149,9 @@ function normalizeJadeOptions(inputJadeOptions) {
 module.exports = function(inputOptions, inputJadeOptions) {
   var options = normalizeOptions(inputOptions);
   var jadeOptions = normalizeJadeOptions(inputJadeOptions);
-  var templates = compileTemplatesInDir(null, options.rootDirPath, jadeOptions);
-  var runtime = "var jade = {};\n" +
-                "(function(exports) {\n" +
-                fs.readFileSync(path.join(__dirname, "runtime.js"), "utf8").toString() +
-                "})(jade);\n";
+  var templates = compileTemplatesInDir(null, options.rootSrcPath, jadeOptions);
+  var runtime = jsRuntime();
+  var keysPattern = new RegExp("^.{"+options.rootUrlPath.length+"}(/.+)?[.]js$");
 
   return function(req, res, next) {
     if (["GET", "HEAD"].indexOf(req.method) == -1) {
@@ -153,13 +164,13 @@ module.exports = function(inputOptions, inputJadeOptions) {
       return next();
     }
 
-    urlPath = urlPath.substr(options.rootUrlPath.length);
+    var match = keysPattern.exec(urlPath);
 
-    if (urlPath.substr(urlPath.length - 3) === ".js") {
-      urlPath = urlPath.substr(0, (urlPath.length - 3));
+    if (match === null) {
+      return next();
     }
 
-    var keys = urlPath.split("/").filter(function(str) { return str.length > 0; });
+    var keys = (match[1] || "").split("/").filter(function(str) { return str.length > 0; });
     var subTemplates = templates;
 
     for (var i = 0; i < keys.length; ++i) {
@@ -169,12 +180,22 @@ module.exports = function(inputOptions, inputJadeOptions) {
       }
     }
 
-    res.set("Content-Type", "application/javascript");
-    res.send("(function() {\n" +
-             runtime +
-             prefixJS() +
-             templatesJS(subTemplates, "T") +
-             suffixJS(options.templatesVarName) +
-             "})();");
+    var jsBody = "(function() {\n" +
+                 runtime +
+                 jsPrefix() +
+                 jsTemplates(subTemplates, "T") +
+                 jsSuffix(options.templatesVarName) +
+                 "})();";
+    var jsPath = options.rootDstPath +
+                 options.rootUrlPath.replace("/", path.sep) +
+                 (keys.length > 0 ? (path.sep + keys.join(path.sep)) : "") +
+                 ".js";
+
+    mkdirp(path.dirname(jsPath), 0x1ED, function(err) {
+      if (err) {
+        return next(err);
+      }
+      return fs.writeFile(jsPath, jsBody, "utf8", next);
+    });
   };
 };
