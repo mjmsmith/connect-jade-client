@@ -76,6 +76,15 @@ function compileTemplatesInDir(parent, dirPath, jadeOptions) {
   });
 }
 
+function compileTemplates(rootSrcPath, jadeOptions) {
+  console.log("compiling templates");
+  var templates = {};
+
+  compileTemplatesInDir(templates, rootSrcPath, jadeOptions);
+
+  return templates;
+}
+
 function jsTemplates(templates, rootKeyPath) {
   var body = "";
 
@@ -114,7 +123,8 @@ function normalizeOptions(inputOptions) {
     templatesVarName: inputOptions.templatesVarName,
     rootSrcPath: inputOptions.rootSrcPath,
     rootDstPath: inputOptions.rootDstPath,
-    rootUrlPath: inputOptions.rootUrlPath
+    rootUrlPath: inputOptions.rootUrlPath,
+    reload: !!inputOptions.reload
   };
 
   if (!options.templatesVarName) {
@@ -163,9 +173,7 @@ module.exports = function(inputOptions, inputJadeOptions) {
   var jadeOptions = normalizeJadeOptions(inputJadeOptions);
   var keysPattern = new RegExp("^.{"+options.rootUrlPath.length+"}(/.+)?[.]js$");
   var runtime = jsRuntime();
-  var templates = {};
-
-  compileTemplatesInDir(templates, options.rootSrcPath, jadeOptions);
+  var templates = compileTemplates(options.rootSrcPath, jadeOptions);
 
   return function(req, res, next) {
     // Check method.
@@ -180,6 +188,12 @@ module.exports = function(inputOptions, inputJadeOptions) {
 
     if (urlPath.lastIndexOf(options.rootUrlPath) !== 0) {
       return next();
+    }
+
+    // Reload templates if option is set.
+
+    if (options.reload) {
+      templates = compileTemplates(options.rootSrcPath, jadeOptions);
     }
 
     // Get the parent templates node matching this url path.
@@ -215,6 +229,8 @@ module.exports = function(inputOptions, inputJadeOptions) {
       }
 
       // No error and newer file timestamp means we can just serve the existing file.
+
+console.log("PARENT" + parent.__timestamp__/1000 + " FILE " + stats.mtime.getTime()/1000);
 
       if (!err && parent.__timestamp__ <= stats.mtime.getTime()) {
         return next();
