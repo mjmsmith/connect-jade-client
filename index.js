@@ -8,6 +8,13 @@ var url = require("url");
 
 var jadePattern = new RegExp("^[/][/]--\\s*(\\S+)[.]jade$", "mg");
 
+function setTemplateTimestamp(template, timestamp) {
+  do {
+    template.__timestamp__ = timestamp;
+    template = template.__parent__;
+  } while (template !== null && template.__timestamp__ < timestamp);
+}
+
 function compileTemplatesInFile(parent, filePath, jadeOptions) {
   var view = path.basename(filePath, ".jade");
   var fileContents = fs.readFileSync(filePath, "utf8").toString();
@@ -16,6 +23,7 @@ function compileTemplatesInFile(parent, filePath, jadeOptions) {
   jadeOptions.filename = filePath;
   parent[view] = jade.compile(parts.shift(), jadeOptions);
   parent[view].__parent__ = parent;
+  setTemplateTimestamp(parent[view], fs.statSync(filePath).mtime.getTime());
 
   for (var i = 0; i < parts.length; i += 2) {
     var subView = parts[i];
@@ -23,6 +31,7 @@ function compileTemplatesInFile(parent, filePath, jadeOptions) {
     jadeOptions.filename = filePath +" [" + subView + "]";
     parent[view][subView] = jade.compile(parts[i+1], jadeOptions);
     parent[view][subView].__parent__ = parent[view];
+    parent[view][subView].__timestamp__ = null;
   }
 }
 
@@ -57,6 +66,7 @@ function compileTemplatesInDir(parent, dirPath, jadeOptions) {
     if (!parent[dir]) {
       parent[dir] = function() { return ""; };
       parent[dir].__parent__ = parent;
+      parent[dir].__timestamp__ = 0;
     }
     compileTemplatesInDir(parent[dir], path.join(dirPath, dir), jadeOptions);
   });
@@ -66,7 +76,7 @@ function jsTemplates(templates, rootKeyPath) {
   var body = "";
 
   for (var key in templates) {
-    if (templates.hasOwnProperty(key) && key != "__parent__") {
+    if (templates.hasOwnProperty(key) && ["__parent__", "__timestamp__"].indexOf(key) === -1) {
       var keyPath = rootKeyPath + "." + key;
 
       body += keyPath + " = " + templates[key].toString() + ";\n";
