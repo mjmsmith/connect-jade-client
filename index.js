@@ -7,7 +7,6 @@ var path = require("path");
 var url = require("url");
 
 var jadePattern = new RegExp("^[/][/]--\\s*(\\S+)[.]jade$", "mg");
-var emptyFunction = function() { return ""; };
 
 function compileTemplatesInFile(templates, filePath, jadeOptions) {
   var view = path.basename(filePath, ".jade");
@@ -20,7 +19,7 @@ function compileTemplatesInFile(templates, filePath, jadeOptions) {
 
   for (var i = 0; i < parts.length; i += 2) {
     jadeOptions.filename = filePath +" [" + parts[i] + "]";
-    templates[view+"."+parts[i]] = jade.compile(parts[i+1], jadeOptions);
+    templates[view][parts[i]] = jade.compile(parts[i+1], jadeOptions);
   }
 }
 
@@ -57,7 +56,7 @@ function compileTemplatesInDir(templates, dirPath, jadeOptions) {
 
   dirs.forEach(function(dir) {
     if (!templates[dir]) {
-      templates[dir] = emptyFunction;
+      templates[dir] = function() { return ""; };
     }
     compileTemplatesInDir(templates[dir], path.join(dirPath, dir), jadeOptions);
   });
