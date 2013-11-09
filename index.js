@@ -7,19 +7,28 @@ var path = require("path");
 var url = require("url");
 
 var jadePattern = new RegExp("^[/][/]--\\s*(\\S+)[.]jade$", "mg");
+var moduleName = path.basename(path.dirname(module.filename));
+
+function createTemplateNode(func, parent, timestamp) {
+  func.__parent__ = parent;
+
+  if (timestamp !== null) {
+    updateTemplateNodeTimestamp(func, timestamp);
+  }
+  else {
+    Object.defineProperty(func, "__timestamp__", {
+      get: function() { return this.__parent__.__timestamp__; }
+    });
+  }
+
+  return func;
+}
 
 function updateTemplateNodeTimestamp(template, timestamp) {
   do {
     template.__timestamp__ = timestamp;
     template = template.__parent__;
   } while (template !== null && template.__timestamp__ < timestamp);
-}
-
-function createTemplateNode(func, parent, timestamp) {
-  func.__parent__ = parent;
-  updateTemplateNodeTimestamp(func, timestamp);
-
-  return func;
 }
 
 function compileTemplatesInFile(parent, filePath, jadeOptions) {
@@ -76,11 +85,11 @@ function compileTemplatesInDir(parent, dirPath, jadeOptions) {
   });
 }
 
-function compileTemplates(rootSrcPath, jadeOptions) {
-  console.log("compiling templates");
+function compileTemplates(sourcePath, jadeOptions) {
   var templates = {};
 
-  compileTemplatesInDir(templates, rootSrcPath, jadeOptions);
+  console.log(moduleName + " compiling " + sourcePath);
+  compileTemplatesInDir(templates, sourcePath, jadeOptions);
 
   return templates;
 }
@@ -107,43 +116,43 @@ function jsRuntime() {
           "})(jade);\n";
 }
 
-function jsBody(runtime, templates, templatesVarName) {
+function jsBody(runtime, templates, global) {
   return "(function() {\n" +
            runtime +
            "\nvar T = {};\n" +
            jsTemplates(templates, "T") +
            "\ntypeof(module) === 'object' && typeof(module.exports) === 'object' " +
-             "? module.exports." + templatesVarName + " = T : window." + templatesVarName + " = T;\n" +
+             "? module.exports." + global + " = T : window." + global + " = T;\n" +
          "})();";
 
 }
 
 function normalizeOptions(inputOptions) {
   var options = {
-    templatesVarName: inputOptions.templatesVarName,
-    rootSrcPath: inputOptions.rootSrcPath,
-    rootDstPath: inputOptions.rootDstPath,
-    rootUrlPath: inputOptions.rootUrlPath,
+    source: inputOptions.source,
+    public: inputOptions.public,
+    prefix: inputOptions.prefix,
+    global: inputOptions.global,
     reload: !!inputOptions.reload
   };
 
-  if (!options.templatesVarName) {
-    options.templatesVarName = "Templates";
+  if (options.source.lastIndexOf(path.sep) === (options.source.length - 1)) {
+    options.source = options.source.substr(0, (options.source.length - 1));
   }
 
-  if (options.rootSrcPath.lastIndexOf(path.sep) === (options.rootSrcPath.length - 1)) {
-    options.rootSrcPath = options.rootSrcPath.substr(0, (options.rootSrcPath.length - 1));
+  if (options.public.lastIndexOf(path.sep) === (options.public.length - 1)) {
+    options.public = options.public.substr(0, (options.public.length - 1));
   }
 
-  if (options.rootDstPath.lastIndexOf(path.sep) === (options.rootDstPath.length - 1)) {
-    options.rootDstPath = options.rootSrcPath.substr(0, (options.rootDstPath.length - 1));
+  if (options.prefix.indexOf("/") !== 0) {
+    options.prefix = "/" + options.prefix;
+  }
+  if (options.prefix.lastIndexOf("/") === (options.prefix.length - 1)) {
+    options.prefix = options.prefix.substr(0, (options.prefix.length - 1));
   }
 
-  if (options.rootUrlPath.indexOf("/") !== 0) {
-    options.rootUrlPath = "/" + options.rootUrlPath;
-  }
-  if (options.rootUrlPath.lastIndexOf("/") === (options.rootUrlPath.length - 1)) {
-    options.rootUrlPath = options.rootUrlPath.substr(0, (options.rootUrlPath.length - 1));
+  if (!options.global) {
+    options.global = "Templates";
   }
 
   return options;
@@ -171,14 +180,14 @@ function normalizeJadeOptions(inputJadeOptions) {
 module.exports = function(inputOptions, inputJadeOptions) {
   var options = normalizeOptions(inputOptions);
   var jadeOptions = normalizeJadeOptions(inputJadeOptions);
-  var keysPattern = new RegExp("^.{"+options.rootUrlPath.length+"}(/.+)?[.]js$");
+  var keysPattern = new RegExp("^.{"+options.prefix.length+"}(/.+)?[.]js$");
   var runtime = jsRuntime();
-  var templates = compileTemplates(options.rootSrcPath, jadeOptions);
+  var templates = compileTemplates(options.source, jadeOptions);
 
   return function(req, res, next) {
     // Check method.
 
-    if (["GET", "HEAD"].indexOf(req.method) == -1) {
+    if (["GET", "HEAD"].indexOf(req.method) === -1) {
       return next();
     }
 
@@ -186,14 +195,14 @@ module.exports = function(inputOptions, inputJadeOptions) {
 
     var urlPath = url.parse(req.url).path;
 
-    if (urlPath.lastIndexOf(options.rootUrlPath) !== 0) {
+    if (urlPath.lastIndexOf(options.prefix) !== 0) {
       return next();
     }
 
     // Reload templates if option is set.
 
     if (options.reload) {
-      templates = compileTemplates(options.rootSrcPath, jadeOptions);
+      templates = compileTemplates(options.source, jadeOptions);
     }
 
     // Get the parent templates node matching this url path.
@@ -216,8 +225,8 @@ module.exports = function(inputOptions, inputJadeOptions) {
 
     // This is one of our paths.  Check the existing file timestamp (if any).
 
-    var jsPath = options.rootDstPath +
-                 options.rootUrlPath.replace("/", path.sep) +
+    var jsPath = options.public +
+                 options.prefix.replace("/", path.sep) +
                  (keys.length > 0 ? (path.sep + keys.join(path.sep)) : "") +
                  ".js";
 
@@ -229,8 +238,6 @@ module.exports = function(inputOptions, inputJadeOptions) {
       }
 
       // No error and newer file timestamp means we can just serve the existing file.
-
-console.log("PARENT" + parent.__timestamp__/1000 + " FILE " + stats.mtime.getTime()/1000);
 
       if (!err && parent.__timestamp__ <= stats.mtime.getTime()) {
         return next();
@@ -245,14 +252,14 @@ console.log("PARENT" + parent.__timestamp__/1000 + " FILE " + stats.mtime.getTim
 
         // Write the file.
 
-        fs.writeFile(jsPath, jsBody(runtime, parent, options.templatesVarName), "utf8", function(err) {
+        fs.writeFile(jsPath, jsBody(runtime, parent, options.global), "utf8", function(err) {
           if (err) {
             return next(err);
           }
 
           // And now we can serve the new/updated file.
 
-          console.log("wrote " + jsPath);
+          console.log(moduleName + " wrote " + jsPath);
           return next();
         });
       });
