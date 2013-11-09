@@ -144,7 +144,7 @@ In the example, sub-templates of the __SecondView__ template are stored in a cor
 
 Note that the comment must begin with the string `//--` followed by at least one space, and end with the string `.jade`.  All text up to the first identifier comment is the template associated with the name of the file itself; all text following an identifier comment is the template associated with the filename specified in the comment.  Only one level of nesting is supported.
 
-In the example, the templates in the __SecondView__ subdirectory could instead be included in the __SecondView.jade__ as follows:
+In the example, the templates in the __SecondView__ subdirectory could instead be included in __SecondView.jade__ as follows:
 
 ```
 div
