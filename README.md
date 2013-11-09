@@ -24,7 +24,7 @@ app.use(connectJadeClient({
 
 In other words,
 
-* `source` is the root directory for your source Jade template files,
+* `source` is the root directory for your client-side Jade template files,
 * `public` is the root directory for your site's public files, and
 * `prefix` is the path under `public` that identifies a relevant request.
 
@@ -78,7 +78,7 @@ Note that to match the source structure, `SecondView` also defines the `DateView
 
 #### Request / Response
 
-The middleware looks for incoming HTTP requests where the path begins with the `prefix` setting and ends in "__.js__".  It generates a JavaScript response that creates a hash table of the compiled templates.  In the example, the generated file/response for `http://mysite.com/js/views.js` looks like this:
+The middleware looks for incoming HTTP requests where the path begins with the `prefix` setting and ends in "__.js__".  It generates a JavaScript response that creates a hash table of the compiled templates on the client.  In the example, the generated file/response for `http://mysite.com/js/views.js` looks like this:
 
 ```
 var T = {};
@@ -99,13 +99,13 @@ Assume that the contents of the __SecondView__ files are as follows:
 div Date and Time
 ```
 
-* DateView.jade
+* SecondView/DateView.jade
   
 ```
 .date The date is #{date}.
 ```
   
-* TimeView.jade
+* SecondView/TimeView.jade
 
 ```
 .time The time is #{time}.
