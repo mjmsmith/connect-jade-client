@@ -131,7 +131,7 @@ http://mysite.com/js/views/ThirdApp.js
 Similarly, the template(s) for a single view could be requested with the URL:
 
 ```
-http://mysite.com/js/FirstApp/views/FooView.js
+http://mysite.com/js/views/FirstApp/FooView.js
 ```
 
 #### Alternate Template Format
