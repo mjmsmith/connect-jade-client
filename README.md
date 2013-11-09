@@ -168,7 +168,7 @@ option =item
 
 By default, the middleware will only generate a new JavaScript file if it doesn't exist, or if the file date is earlier than any of the source __.jade__ files it references.  This means that during development, it won't pick up changes to __.jade__ files made after the middleware was initialized.  Set the `reload` setting to `true` to have it rebuild the templates on every request.
 
-Note that this setting should never be used in a production environment.  The recommended way to use this is:
+Since this setting should never be used in a production environment, the recommended way to enable it is:
 
 ```
   reload: (process.env.NODE_ENV === "development")
