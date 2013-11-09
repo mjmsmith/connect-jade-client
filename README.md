@@ -110,14 +110,12 @@ Because you can request any subset of templates using the corresponding path, it
 ```
 /usr/local/mysite/
     client/
-        FirstApp/
-            views/
+        views/
+            FirstApp/
                 FooView.jade
-        SecondApp/
-            views/
+            SecondApp/
                 BarView.jade
-        ThirdApp/
-            views/
+            ThirdApp/
                 BazView.jade
     ...
 ```
@@ -125,9 +123,9 @@ Because you can request any subset of templates using the corresponding path, it
 The subset of templates corresponding to each app can be requested with the URLs:
 
 ```
-http://mysite.com/js/FirstApp/views.js
-http://mysite.com/js/SecondApp/views.js
-http://mysite.com/js/ThirdApp/views.js
+http://mysite.com/js/views/FirstApp.js
+http://mysite.com/js/views/SecondApp.js
+http://mysite.com/js/views/ThirdApp.js
 ```
 
 Similarly, the template(s) for a single view could be requested with the URL:
