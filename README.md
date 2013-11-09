@@ -1,8 +1,6 @@
 # WORK IN PROGRESS / UNSTABLE
 
-## connect-jade-client
-
-### Installation
+## Installation
 
 Install via npm:
 
@@ -30,7 +28,7 @@ In other words,
 * `public` is the root directory for your site's public files, and
 * `prefix` is the path under `public` that identifies a relevant request.
 
-### Details
+## Details
 
 Assume we have this example site structure.
 
@@ -96,32 +94,13 @@ window.Templates = T;
 Assume that the contents of the __SecondView__ files are as follows:
 
 ```
-SecondView.jade:
-  div
-    =list
-  
-SecondView/List.jade:
-  select(name="MyList")
-  
-SecondView/ListItem.jade:
-  option()
-    =item
+TODO
 ```
 
 These templates could be used in a Backbone View like this:
 
 ```
-var SecondView = Backbone.View.extend({
-    ...
-    render: function() {
-        var list = Templates.SecondView.List()
-        _.collection.each(function(model) {
-          list.append(Templates.SecondView.ListItem({name: model.name}))
-        });
-        this.$el.html(Templates.SecondView({list: list}));
-        return this;
-    }
-});
+TODO
 ```
 
 #### Multiple Apps
@@ -157,7 +136,31 @@ Similarly, the template(s) for a single view could be requested with the URL:
 http://mysite.com/js/FirstApp/views/FooView.js
 ```
 
-### Optional Settings
+#### Alternate Template Format
+
+In the example, sub-templates of the __SecondView__ template are stored in a corresponding subdirectory.  The middleware also supports a custom format where all templates are stored in the same file, with comments used to identify the sections.  The comment format is:
+
+```
+//-- TemplateName.jade
+```
+
+Note that the comment must begin with the string `//--` followed by at least one space, and end with the string `.jade`.  All text up to the first identifier comment is the template associated with the name of the file itself; all text following an identifier comment is the template associated with the filename specified in the comment.  Only one level of nesting is supported.
+
+In the example, the templates in the __SecondView__ subdirectory could instead be included in the __SecondView.jade__ as follows:
+
+```
+div
+
+//-- List.jade
+  
+select
+  
+//-- ListItem.jade
+
+option =item
+```
+
+## Optional Settings
 
   * `global` The name of the client-side public variable (default: __"Templates"__).
   
