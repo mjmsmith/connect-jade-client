@@ -74,7 +74,7 @@ On startup, the middleware searches for all file ending in "__.jade__" under the
 
 The value associated with each key is the compiled template function. 
 
-Note that to match the source structure, `SecondView` also defines the `Alert` and `List` functions as properties.  This hierarchy is supported to an arbitary depth.
+Note that to match the source structure, `SecondView` also defines the `Alert` and `List` functions as properties.  This hierarchy is supported to an arbitrary depth.
 
 #### Request / Response
 
