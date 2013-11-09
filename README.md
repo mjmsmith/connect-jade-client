@@ -40,8 +40,8 @@ Assume we have this example site structure.
             FirstView.jade
             SecondView.jade
             SecondView/
-                List.jade
-                ListItem.jade
+                DateView.jade
+                TimeView.jade
             ThirdView.jade
     public/
     ...
@@ -66,15 +66,15 @@ On startup, the middleware searches for all file ending in "__.jade__" under the
 ```
     FirstView:    function(args) {...}
     SecondView:   function(args) {...}
-        List:     function(args) {...}
-        ListItem: function(args) {...}
+        DateView: function(args) {...}
+        TimeView: function(args) {...}
     ThirdView:    function(args) {...}
 }
 ```
 
 The value associated with each key is the compiled template function. 
 
-Note that to match the source structure, `SecondView` also defines the `Alert` and `List` functions as properties.  This hierarchy is supported to an arbitrary depth.
+Note that to match the source structure, `SecondView` also defines the `DateView` and `TimeView` functions as properties.  This namespacing is supported to an arbitrary depth.
 
 #### Request / Response
 
@@ -84,8 +84,8 @@ The middleware looks for incoming HTTP requests where the path begins with the `
 var T = {};
 T.FirstView = function(args) {...};
 T.SecondView = function(args) {...};
-T.SecondView.List = function(args) {...};
-T.SecondView.ListItem = function(args) {...};
+T.SecondView.DateView = function(args) {...};
+T.SecondView.TimeView = function(args) {...};
 T.ThirdView = function(args) {...};
 window.Templates = T;
 ```
@@ -93,14 +93,46 @@ window.Templates = T;
 
 Assume that the contents of the __SecondView__ files are as follows:
 
-```
-TODO
-```
-
-These templates could be used in a Backbone View like this:
+* SecondView.jade:
 
 ```
-TODO
+div Date and Time
+```
+
+* DateView.jade
+  
+```
+.date The date is #{date}.
+```
+  
+* TimeView.jade
+
+```
+.time The time is #{time}.
+```
+
+These (rather contrived) templates could be used in a (similarly contrived) Backbone View like this:
+
+```
+var TimeView = Backbone.View.extend({
+    render: function() {
+        return Templates.SecondView.TimeView(time: moment().format("MMM Do YY"));
+    }
+});
+  
+var DateView = Backbone.View.extend({
+    render: function() {
+        return Templates.SecondView.DateView(date: moment().format("hh:mm:ss"));
+    }
+});
+
+var SecondView = Backbone.View.extend({
+    render: function() {
+        this.$el.append(new DateView().render());
+        this.$el.append(new TimeView().render());
+        return this;
+     }
+});
 ```
 
 #### Multiple Apps
@@ -147,15 +179,15 @@ Note that the comment must begin with the string `//--` followed by at least one
 In the example, the templates in the __SecondView__ subdirectory could instead be included in __SecondView.jade__ as follows:
 
 ```
-div
+div Date and Time
 
-//-- List.jade
+//-- DateView.jade
   
-select
+.date The date is #{date}.
   
-//-- ListItem.jade
+//-- TimeView.jade
 
-option =item
+.time The time is #{time}.
 ```
 
 ## Optional Settings
