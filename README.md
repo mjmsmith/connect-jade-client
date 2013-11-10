@@ -1,14 +1,16 @@
-# WORK IN PROGRESS / UNSTABLE
+# connect-jade-client  <span style="color:red;">[work in progress / unstable]</span>
+
+__connect-jade-client__ is Connect middleware for serving compiled Jade templates to clients with maximum flexibility and minimum hassle.
 
 ## Installation
 
-Install via npm:
+Install via npm: <span style="color:red;">[todo]</span>
 
 ```
 npm install connect-jade-client
 ```
 
-### Required Settings
+## Required Settings
 
 At a minimum, three settings must be provided to the middleware:
 
@@ -192,11 +194,21 @@ div Date and Time
 
 ## Optional Settings
 
-  * `global` The name of the client-side public variable (default: __"Templates"__).
+* `global` The name of the client-side public variable. (string)
+   
+  default: __Templates__
   
-  Include the `global` setting to specify an alternate name for the templates variable.
+Include the `global` setting to specify an alternate name for the templates variable.
 
-  * `reload` Search for and recompile  templates on every request (default: __false__).
+* `jadeOptions` Options passed to the Jade compiler. (object)
+
+  default: __{ client: true, compileDebug: false, debug: false, pretty: true }__
+
+Any options you specify will be merged into the default options.
+
+* `reload` Search for and recompile  templates on every request. (boolean)
+
+  default: __false__
 
 By default, the middleware will only generate a new JavaScript file if it doesn't exist, or if the file date is earlier than any of the source __.jade__ files it references.  This means that during development, it won't pick up changes to __.jade__ files made after the middleware was initialized.  Set the `reload` setting to `true` to have it rebuild the templates on every request.
 
