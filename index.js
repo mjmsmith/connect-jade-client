@@ -100,7 +100,7 @@ module.exports = function(inputOptions, inputJadeOptions) {
 };
 
 function compileTemplates(sourcePath, jadeOptions) {
-  var templates = {};
+  var templates = createTemplateNode(function() { return ""; }, null, 0);
 
   console.log(moduleName + " compiling " + sourcePath);
   compileTemplatesInDir(templates, sourcePath, jadeOptions);
@@ -191,7 +191,6 @@ function jsBody(runtime, templates, global) {
            "\ntypeof(module) === 'object' && typeof(module.exports) === 'object' " +
              "? module.exports." + global + " = T : window." + global + " = T;\n" +
          "})();";
-
 }
 
 function jsTemplates(templates, rootKeyPath) {
@@ -225,14 +224,23 @@ function normalizeOptions(inputOptions) {
     reload: !!inputOptions.reload
   };
 
+  if (typeof(options.source) !== "string") {
+    abort("invalid 'source' setting");
+  }
   if (options.source.lastIndexOf(path.sep) === (options.source.length - 1)) {
     options.source = options.source.substr(0, (options.source.length - 1));
   }
 
+  if (typeof(options.public) !== "string") {
+    abort("invalid 'public' setting");
+  }
   if (options.public.lastIndexOf(path.sep) === (options.public.length - 1)) {
     options.public = options.public.substr(0, (options.public.length - 1));
   }
 
+  if (typeof(options.prefix) !== "string") {
+    abort("invalid 'prefix' setting");
+  }
   if (options.prefix.indexOf("/") !== 0) {
     options.prefix = "/" + options.prefix;
   }
@@ -240,7 +248,12 @@ function normalizeOptions(inputOptions) {
     options.prefix = options.prefix.substr(0, (options.prefix.length - 1));
   }
 
-  if (!options.global) {
+  if (options.global) {
+    if (typeof(options.global) !== "string") {
+      abort("invalid 'global' setting");
+    }
+  }
+  else {
     options.global = "Templates";
   }
 
@@ -256,6 +269,10 @@ function normalizeJadeOptions(inputJadeOptions) {
   };
 
   if (inputJadeOptions) {
+    if (typeof(inputJadeOptions) !== "object") {
+      abort("invalid 'jadeOptions' setting");
+    }
+
     for (var key in inputJadeOptions) {
       if (inputJadeOptions.hasOwnProperty(key)) {
         jadeOptions[key] = inputJadeOptions[key];
@@ -264,4 +281,8 @@ function normalizeJadeOptions(inputJadeOptions) {
   }
 
   return jadeOptions;
+}
+
+function abort(reason) {
+  throw new Error(moduleName + ": " + reason);
 }
