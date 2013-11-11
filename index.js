@@ -13,8 +13,8 @@ module.exports = function(inputOptions, inputJadeOptions) {
   var options = normalizeOptions(inputOptions);
   var jadeOptions = normalizeJadeOptions(inputJadeOptions);
   var keysPattern = new RegExp("^.{"+options.prefix.length+"}(/.+)?[.]js$");
-  var runtime = jsRuntime();
-  var templates = compileTemplates(options.source, jadeOptions);
+  var jadeRuntime = fs.readFileSync(path.join(__dirname, "runtime.js"), "utf8").toString();
+  var rootTemplateNode = compileTemplates(options.source, jadeOptions);
 
   return function(req, res, next) {
     // Check method.
@@ -34,10 +34,10 @@ module.exports = function(inputOptions, inputJadeOptions) {
     // Reload templates if option is set.
 
     if (options.reload) {
-      templates = compileTemplates(options.source, jadeOptions);
+      rootTemplateNode = compileTemplates(options.source, jadeOptions);
     }
 
-    // Get the parent templates node matching this url path.
+    // Get the template node matching this url path.
 
     var match = keysPattern.exec(urlPath);
 
@@ -46,11 +46,11 @@ module.exports = function(inputOptions, inputJadeOptions) {
     }
 
     var keys = (match[1] || "").split("/").filter(function(str) { return str.length > 0; });
-    var parent = templates;
+    var templateNode = rootTemplateNode;
 
     for (var i = 0; i < keys.length; ++i) {
-      parent = parent[keys[i]];
-      if (!parent) {
+      templateNode = templateNode[keys[i]];
+      if (!templateNode) {
         return next();
       }
     }
@@ -71,7 +71,7 @@ module.exports = function(inputOptions, inputJadeOptions) {
 
       // No error and newer file timestamp means we can just serve the existing file.
 
-      if (!err && parent.__timestamp__ <= stats.mtime.getTime()) {
+      if (!err && templateNode.__timestamp__ <= stats.mtime.getTime()) {
         return next();
       }
 
@@ -84,7 +84,7 @@ module.exports = function(inputOptions, inputJadeOptions) {
 
         // Write the file.
 
-        fs.writeFile(jsPath, jsBody(runtime, parent, options.global), "utf8", function(err) {
+        fs.writeFile(jsPath, jsBody(jadeRuntime, templateNode, options.global), "utf8", function(err) {
           if (err) {
             return next(err);
           }
@@ -100,12 +100,12 @@ module.exports = function(inputOptions, inputJadeOptions) {
 };
 
 function compileTemplates(sourcePath, jadeOptions) {
-  var templates = createTemplateNode(function() { return ""; }, null, 0);
+  var templateNode = createTemplateNode(function() { return ""; }, null, 0);
 
   console.log(moduleName + " compiling " + sourcePath);
-  compileTemplatesInDir(templates, sourcePath, jadeOptions);
+  compileTemplatesInDir(templateNode, sourcePath, jadeOptions);
 
-  return templates;
+  return templateNode;
 }
 
 function compileTemplatesInDir(parent, dirPath, jadeOptions) {
@@ -176,43 +176,35 @@ function createTemplateNode(func, parent, timestamp) {
   return func;
 }
 
-function updateTemplateNodeTimestamp(template, timestamp) {
+function updateTemplateNodeTimestamp(templateNode, timestamp) {
   do {
-    template.__timestamp__ = timestamp;
-    template = template.__parent__;
-  } while (template !== null && template.__timestamp__ < timestamp);
+    templateNode.__timestamp__ = timestamp;
+    templateNode = templateNode.__parent__;
+  } while (templateNode !== null && templateNode.__timestamp__ < timestamp);
 }
 
-function jsBody(runtime, templates, global) {
+function jsBody(jadeRuntime, templateNode, global) {
   return "(function() {\n" +
-           runtime +
-           "\nvar T = {};\n" +
-           jsTemplates(templates, "T") +
-           "\ntypeof(module) === 'object' && typeof(module.exports) === 'object' " +
-             "? module.exports." + global + " = T : window." + global + " = T;\n" +
+           "var jade = {};\n" +
+           "(function(exports) {\n" +
+             jadeRuntime +
+           "})(jade);\n\n" +
+           jsTemplateNode(templateNode, "T") +
+           "typeof(module) === 'object' && typeof(module.exports) === 'object' " +
+           "? module.exports." + global + " = T : window." + global + " = T;\n" +
          "})();";
 }
 
-function jsTemplates(templates, rootKeyPath) {
-  var body = "";
+function jsTemplateNode(templateNode, keyPath) {
+  var body = keyPath + " = " + templateNode.toString() + ";\n";
 
-  for (var key in templates) {
-    if (templates.hasOwnProperty(key) && ["__parent__", "__timestamp__"].indexOf(key) === -1) {
-      var keyPath = rootKeyPath + "." + key;
-
-      body += keyPath + " = " + templates[key].toString() + ";\n";
-      body += jsTemplates(templates[key], keyPath);
+  for (var key in templateNode) {
+    if (templateNode.hasOwnProperty(key) && ["__parent__", "__timestamp__"].indexOf(key) === -1) {
+      body += jsTemplateNode(templateNode[key], (keyPath + "." + key));
     }
   }
 
   return body;
-}
-
-function jsRuntime() {
-  return  "var jade = {};\n" +
-          "(function(exports) {\n" +
-          fs.readFileSync(path.join(__dirname, "runtime.js"), "utf8").toString() +
-          "})(jade);\n";
 }
 
 function normalizeOptions(inputOptions) {
