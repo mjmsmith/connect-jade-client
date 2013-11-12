@@ -18,14 +18,14 @@
     "supertest": "~0.8.1",
     "wrench": "~1.5.4"
   },
-  "keywords": [],
+  "keywords": ["connect", "middleware", "jade", "templates"],
   "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/mjmsmith/connect-jade-client.git"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha --ui bdd tests/index.js --reporter spec"
+    "test": "mocha --ui bdd tests/index.js --reporter spec"
   },
   "readmeFilename": "README.md"
 }
