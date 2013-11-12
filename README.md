@@ -1,10 +1,10 @@
-# connect-jade-client  <span style="color:red;">[work in progress / unstable]</span>
+# connect-jade-client
 
 __connect-jade-client__ is Connect middleware for serving compiled Jade templates to clients with maximum flexibility and minimum hassle.
 
 ## Installation
 
-Install via npm: <span style="color:red;">[todo]</span>
+Install via npm:
 
 ```
 npm install connect-jade-client
@@ -211,8 +211,6 @@ Any options you specify will be merged into the default options.
   default: __false__
 
 By default, the middleware will only generate a new JavaScript file if it doesn't exist, or if the file date is earlier than any of the source __.jade__ files it references.  This means that during development, it won't pick up changes to __.jade__ files made after the middleware was initialized.  Set the `reload` setting to `true` to have it rebuild the templates on every request.
-
-Since this setting should never be used in a production environment, the recommended way to enable it is:
 
 ```
   reload: (process.env.NODE_ENV === "development")
