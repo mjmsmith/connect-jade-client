@@ -1,4 +1,4 @@
-var connectJadeClient = require("connect-jade-client");
+var connectJadeClient = require("../../connect-jade-client");
 var express = require("express");
 var fs = require("fs");
 var mocha = require("mocha");

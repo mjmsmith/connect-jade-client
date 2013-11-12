@@ -1,26 +1,25 @@
 {
   "name": "connect-jade-client",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "Connect middleware for serving compiled Jade templates to clients.",
   "homepage": "https://github.com/mjmsmith/connect-jade-client",
   "author": {
     "name": "Mark Smith",
     "email": "mark@camazotz.com"
   },
-  "engines": {
-    "node": ">= 0.10.0"
-  },
   "dependencies": {
     "jade": "~0.35.0",
     "mkdirp": "~0.3.5"
   },
   "devDependencies": {
+    "express": "~3.4.4",
     "mocha": "~1.14.0",
     "rimraf": "~2.2.2",
     "supertest": "~0.8.1",
     "wrench": "~1.5.4"
   },
   "keywords": [],
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/mjmsmith/connect-jade-client.git"
