@@ -71,7 +71,7 @@ module.exports = function(inputOptions, inputJadeOptions) {
 
       // No error and newer file timestamp means we can just serve the existing file.
 
-      if (!err && templateNode.__timestamp__ <= stats.mtime.getTime()) {
+      if (!err && stats.mtime.getTime() > templateNode.__timestamp__) {
         return next();
       }
 
@@ -91,7 +91,7 @@ module.exports = function(inputOptions, inputJadeOptions) {
 
           // And now we can serve the new/updated file.
 
-          console.log(moduleName + " wrote " + jsPath);
+          console.info(moduleName + " wrote " + jsPath);
           return next();
         });
       });
@@ -102,7 +102,7 @@ module.exports = function(inputOptions, inputJadeOptions) {
 function compileTemplates(sourcePath, jadeOptions) {
   var templateNode = createTemplateNode(function() { return ""; }, null, 0);
 
-  console.log(moduleName + " compiling " + sourcePath);
+  console.info(moduleName + " compiling " + sourcePath);
   compileTemplatesInDir(templateNode, sourcePath, jadeOptions);
 
   return templateNode;
