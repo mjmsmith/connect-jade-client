@@ -116,18 +116,18 @@ div Date and Time
 These (rather contrived) templates could be used in a (similarly contrived) Backbone View like this:
 
 ```
-var TimeView = Backbone.View.extend({
-    render: function() {
-        return Templates.SecondView.TimeView(time: moment().format("MMM Do YY"));
-    }
-});
-  
 var DateView = Backbone.View.extend({
     render: function() {
-        return Templates.SecondView.DateView(date: moment().format("hh:mm:ss"));
+        return Templates.SecondView.DateView(date: moment().format("MMM Do YY"));
     }
 });
 
+var TimeView = Backbone.View.extend({
+    render: function() {
+        return Templates.SecondView.TimeView(time: moment().format("hh:mm:ss"));
+    }
+});
+  
 var SecondView = Backbone.View.extend({
     render: function() {
         this.$el.append(new DateView().render());
