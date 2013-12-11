@@ -66,6 +66,7 @@ app.use(connectJadeClient({
 On startup, the middleware searches for all file ending in "__.jade__" under the `source` root directory.  It compiles all of the files into a hash table of function objects, where the key names correspond to the source structure.  In the example, the resulting table looks like this:
 
 ```
+{
     FirstView:    function(args) {...}
     SecondView:   function(args) {...}
         DateView: function(args) {...}
