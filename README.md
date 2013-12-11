@@ -118,13 +118,15 @@ These (rather contrived) templates could be used in a (similarly contrived) Back
 ```
 var DateView = Backbone.View.extend({
     render: function() {
-        return Templates.SecondView.DateView(date: moment().format("MMM Do YY"));
+        this.$el.html(Templates.SecondView.DateView(date: moment().format("MMM Do YY")));
+        return this;
     }
 });
 
 var TimeView = Backbone.View.extend({
     render: function() {
-        return Templates.SecondView.TimeView(time: moment().format("hh:mm:ss"));
+        this.$el.html(Templates.SecondView.TimeView(time: moment().format("hh:mm:ss")));
+        return this;
     }
 });
   
